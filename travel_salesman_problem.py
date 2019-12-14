@@ -78,12 +78,12 @@ class TravelSalesmanProblem( ProblemTemplate ):
         """
         """
         solution_representation = []
-        encoding_data = self._encoding.encoding_data
+        encoding_data = deepcopy(self._encoding.encoding_data)
 
-        for _ in range(self._encoding.size):
+        while len(solution_representation) < self._encoding.size:
             new_city = choice(encoding_data)
-            if new_city not in solution_representation:
-                solution_representation.append(new_city)
+            encoding_data.remove(new_city)
+            solution_representation.append(new_city)
 
         solution = LinearSolution(
             representation = solution_representation, 
