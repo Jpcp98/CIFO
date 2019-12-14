@@ -1,4 +1,4 @@
-from random import uniform, randint, choices
+from random import uniform, randint, choices, shuffle
 from copy import deepcopy
 
 from cifo.problem.objective import ProblemObjective
@@ -54,7 +54,7 @@ def initialize_randomly( problem, population_size ):
 # Initialization using Hill Climbing
 # -------------------------------------------------------------------------------------------------
 #TODO: OPTIONAL, implement a initialization based on Hill Climbing
-# Remark: remember, you will need a neighborhood functin for each problem
+# Remark: remember, you will need a neighborhood function for each problem
 def initialize_using_hc( problem, population_size ):
     pass
 
@@ -62,7 +62,7 @@ def initialize_using_hc( problem, population_size ):
 # Initialization using Simulated Annealing
 # -------------------------------------------------------------------------------------------------
 #TODO: OPTIONAL, implement a initialization based on Hill Climbing
-# Remark: remember, you will need a neighborhood functin for each problem
+# Remark: remember, you will need a neighborhood function for each problem
 def initialize_using_sa( problem, population_size ):
     pass
 
@@ -249,15 +249,60 @@ def pmx_crossover( problem, solution1, solution2):
 # Cycle Crossover
 # -------------------------------------------------------------------------------------------------
 # TODO: implement Cycle Crossover
-def cycle_crossover( problem, solution1, solution2):
-    pass
+def cycle_crossover(problem, solution1, solution2):
+
+    index_counter = []
+    offspring1 = deepcopy(solution1)
+    offspring2 = deepcopy(solution2)
+    alternate = 0
+
+    for i in range(len(solution1.representation)):  # Both solutions have the same length
+        if i not in index_counter:
+            indexes = [i]
+            index = solution1.representation.index(solution2.representation[i])
+
+            while index != i: # Cycle indexes
+                indexes.append(index)
+                index = solution1.representation.index(solution2.representation[index])
+
+            index_counter.extend(indexes)
+
+            if alternate % 2 != 0: # Updating the offspring
+                for j in indexes:
+                    offspring1.representation[j] = solution2.representation[j]
+                    offspring2.representation[j] = solution1.representation[j]
+
+            alternate += 1
+
+    return offspring1, offspring2
+
+# -------------------------------------------------------------------------------------------------
+# Order 1 Crossover
+# -------------------------------------------------------------------------------------------------
+
+def ox1_crossover(problem, solution1, solution2):
+
+    crossover_position_1 = randint(0,  len(solution1.representation) - 1)
+    crossover_position_2 = randint(0,  len(solution1.representation) - 1)
+
+    while crossover_position_2 == crossover_position_1:
+        crossover_position_2 = randint(0,  len(solution1.representation) - 1)
+
+    offspring1 = deepcopy(solution1)
+    offspring2 = deepcopy(solution2)
+
+    if crossover_position_1 < crossover_position_2:
+        swath1 = solution1[crossover_position_1 : crossover_position_2 + 1]
+        swath2 = solution2[crossover_position_1 : crossover_position_2 + 1]
+
+    return offspring1, offspring2
 
 ###################################################################################################
 # MUTATION APPROACHES
 ###################################################################################################
 # -------------------------------------------------------------------------------------------------
 # Singlepoint mutation
-# -----------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------
 def single_point_mutation( problem, solution):
     singlepoint = randint( 0, len( solution.representation )-1 )
     #print(f" >> singlepoint: {singlepoint}")
@@ -285,8 +330,93 @@ def single_point_mutation( problem, solution):
 # Swap mutation
 # -----------------------------------------------------------------------------------------------
 #TODO: Implement Swap mutation
-def swap_mutation( problem, solution):
-    pass
+def swap_mutation(problem, solution):
+
+    swap_position_1 = randint(0,  len(solution.representation) - 1)
+    swap_position_2 = randint(0,  len(solution.representation) - 1)
+
+    while swap_position_2 == swap_position_1:
+        swap_position_2 = randint(0,  len(solution.representation) - 1)
+
+    city1 = solution.representation[swap_position_1]
+    city2 = solution.representation[swap_position_2]
+
+    solution.representation[swap_position_1] = city2
+    solution.representation[swap_position_2] = city1
+
+    return solution
+
+# -------------------------------------------------------------------------------------------------
+# Insert mutation
+# -------------------------------------------------------------------------------------------------
+def insert_mutation(problem, solution):
+
+    insert_position_1 = randint(0,  len(solution.representation) - 1)
+    insert_position_2 = randint(0,  len(solution.representation) - 1)
+
+    while insert_position_2 == insert_position_1:
+        insert_position_2 = randint(0,  len(solution.representation) - 1)
+
+    if insert_position_1 < insert_position_2:
+        solution.representation = solution.representation[0 : insert_position_1 + 1] \
+                                  + [solution.representation[insert_position_2]] \
+                                  + solution.representation[insert_position_1 + 1 : insert_position_2]\
+                                  + solution.representation[insert_position_2 + 1 : -1]
+    else: # insert_position_2 < insert_position_1
+        solution.representation = solution.representation[0 : insert_position_2 + 1]\
+                                  + [solution.representation[insert_position_1]]\
+                                  + solution.representation[insert_position_2 + 1 : insert_position_1]\
+                                  + solution.representation[insert_position_1 + 1 : -1]
+
+    return solution
+
+# -------------------------------------------------------------------------------------------------
+# Inversion mutation
+# -------------------------------------------------------------------------------------------------
+def inversion_mutation(problem, solution):
+
+    inversion_position_1 = randint(0,  len(solution.representation) - 1)
+    inversion_position_2 = randint(0,  len(solution.representation) - 1)
+
+    while inversion_position_2 == inversion_position_1:
+        inversion_position_2 = randint(0,  len(solution.representation) - 1)
+
+    if inversion_position_1 < inversion_position_2:
+        to_reverse = solution.representation[inversion_position_1 : inversion_position_2 + 1]
+        solution.representation = solution.representation[0 : inversion_position_1] \
+                                  + list(reversed(to_reverse)) \
+                                  + solution.representation[inversion_position_2 + 1 : -1]
+    else: # inversion_position_2 < inversion_position_1
+        to_reverse = solution.representation[inversion_position_2 : inversion_position_1 + 1]
+        solution.representation = solution.representation[0 : inversion_position_2] \
+                                  + list(reversed(to_reverse)) \
+                                  + solution.representation[inversion_position_1 + 1 : -1]
+
+    return solution
+
+# -------------------------------------------------------------------------------------------------
+# Scramble mutation
+# -------------------------------------------------------------------------------------------------
+def scramble_mutation(problem, solution):
+
+    scramble_position_1 = randint(0,  len(solution.representation) - 1)
+    scramble_position_2 = randint(0,  len(solution.representation) - 1)
+
+    while scramble_position_2 == scramble_position_1:
+        scramble_position_2 = randint(0,  len(solution.representation) - 1)
+
+    if scramble_position_1 < scramble_position_2:
+        to_shuffle = solution.representation[scramble_position_1 : scramble_position_2 + 1]
+        solution.representation = solution.representation[0 : scramble_position_1] \
+                                  + list(shuffle(to_shuffle)) \
+                                  + solution.representation[scramble_position_2 + 1 : -1]
+    else: # scramble_position_2 < scramble_position_1
+        to_shuffle = solution.representation[scramble_position_2 : scramble_position_1 + 1]
+        solution.representation = solution.representation[0 : scramble_position_2] \
+                                  + list(shuffle(to_shuffle)) \
+                                  + solution.representation[scramble_position_1 + 1 : -1]
+
+    return solution
 
 ###################################################################################################
 # REPLACEMENT APPROACHES
